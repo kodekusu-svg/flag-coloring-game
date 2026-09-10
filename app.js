@@ -149,7 +149,7 @@ function rgbToHex({r,g,b}) {
   return `#${h(r)}${h(g)}${h(b)}`;
 }
 
-function makeDistractor(hex, amount = 0.05) {
+function makeDistractor(hex, amount = 0.10) {
   const rgb = hexToRgb(hex);
   const shift = () => (Math.random() < .5 ? -1 : 1) * 255 * amount * (.7 + Math.random() * .6);
   return rgbToHex({ r: rgb.r + shift(), g: rgb.g + shift(), b: rgb.b + shift() });
@@ -161,7 +161,7 @@ function paletteFor(flag) {
   correct.forEach(color => {
     let candidate = makeDistractor(color);
     let guard = 0;
-    while ((correct.some(c => colorDistance(c, candidate) < 10) || distractors.includes(candidate)) && guard++ < 10) {
+    while ((correct.some(c => colorDistance(c, candidate) < 20) || distractors.includes(candidate)) && guard++ < 10) {
       candidate = makeDistractor(color);
     }
     distractors.push(candidate);
