@@ -81,32 +81,56 @@ function renderPalette(flag){
 }
 function selectColor(color,chip){state.selectedColor=color;el.palette.querySelectorAll('.color-chip').forEach(c=>c.classList.remove('selected'));chip.classList.add('selected');el.message.textContent='ぬりたい ばしょを タップしてね！';el.message.className='message';}
 function animateRegionFill(node,color){
+  const svg=node.ownerSVGElement;
   const parent=node.parentNode;
-  if(!parent||typeof node.cloneNode!=='function'){node.setAttribute('fill',color);return;}
+  if(!svg||!parent||typeof node.getBBox!=='function'){node.setAttribute('fill',color);return;}
+
   parent.querySelectorAll(`[data-paint-overlay-for="${node.dataset.regionId}"]`).forEach(overlay=>overlay.remove());
+  svg.querySelectorAll(`[data-paint-clip-for="${node.dataset.regionId}"]`).forEach(def=>def.remove());
+
+  let box;
+  try{box=node.getBBox();}catch(_){node.setAttribute('fill',color);return;}
+  const cx=box.x+box.width/2;
+  const cy=box.y+box.height/2;
+  const farthest=Math.max(
+    Math.hypot(cx-box.x,cy-box.y),
+    Math.hypot(cx-(box.x+box.width),cy-box.y),
+    Math.hypot(cx-box.x,cy-(box.y+box.height)),
+    Math.hypot(cx-(box.x+box.width),cy-(box.y+box.height))
+  )+8;
+
+  const ns='http://www.w3.org/2000/svg';
+  let defs=svg.querySelector('defs');
+  if(!defs){defs=document.createElementNS(ns,'defs');svg.insertBefore(defs,svg.firstChild);}
+  const clip=document.createElementNS(ns,'clipPath');
+  const clipId=`paint-spread-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  clip.setAttribute('id',clipId);
+  clip.setAttribute('clipPathUnits','userSpaceOnUse');
+  clip.dataset.paintClipFor=node.dataset.regionId;
+  const circle=document.createElementNS(ns,'circle');
+  circle.setAttribute('cx',cx);circle.setAttribute('cy',cy);circle.setAttribute('r','0');
+  clip.appendChild(circle);defs.appendChild(clip);
+
   const overlay=node.cloneNode(true);
   overlay.classList.remove('paint-region','drop-target');
-  overlay.removeAttribute('tabindex');
-  overlay.removeAttribute('role');
-  overlay.removeAttribute('aria-label');
-  overlay.setAttribute('fill',color);
-  overlay.setAttribute('pointer-events','none');
+  overlay.removeAttribute('tabindex');overlay.removeAttribute('role');overlay.removeAttribute('aria-label');
+  overlay.setAttribute('fill',color);overlay.setAttribute('pointer-events','none');
+  overlay.setAttribute('clip-path',`url(#${clipId})`);
   overlay.dataset.paintOverlayFor=node.dataset.regionId;
-  overlay.style.clipPath='circle(0% at 50% 50%)';
-  overlay.style.webkitClipPath='circle(0% at 50% 50%)';
   node.after(overlay);
-  const finish=()=>{node.setAttribute('fill',color);overlay.remove();};
-  if(typeof overlay.animate==='function'){
-    const animation=overlay.animate([
-      {clipPath:'circle(0% at 50% 50%)',webkitClipPath:'circle(0% at 50% 50%)'},
-      {clipPath:'circle(165% at 50% 50%)',webkitClipPath:'circle(165% at 50% 50%)'}
-    ],{duration:520,easing:'cubic-bezier(.2,.75,.25,1)',fill:'forwards'});
-    animation.addEventListener('finish',finish,{once:true});
-    animation.addEventListener('cancel',finish,{once:true});
-  }else{
-    node.setAttribute('fill',color);
-    overlay.remove();
-  }
+
+  const duration=720;
+  const start=performance.now();
+  const ease=t=>1-Math.pow(1-t,3);
+  const step=now=>{
+    const t=Math.min(1,(now-start)/duration);
+    circle.setAttribute('r',String(farthest*ease(t)));
+    if(t<1){requestAnimationFrame(step);}else{
+      node.setAttribute('fill',color);
+      overlay.remove();clip.remove();
+    }
+  };
+  requestAnimationFrame(step);
 }
 function paintRegion(node,forcedColor=null){if(state.locked)return;const color=forcedColor||state.selectedColor;if(!color){el.message.textContent='さきに いろを えらんでね！';el.message.className='message wrong';return;}animateRegionFill(node,color);node.dataset.paint=color.toLowerCase();el.message.textContent='';el.message.className='message';}
 function loadQuestion(){
