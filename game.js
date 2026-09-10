@@ -1,5 +1,7 @@
 const FLAGS = window.FLAGS || [];
-const state = { score:0, question:0, current:null, queue:[], selectedColor:null, completed:[], locked:false };
+const NEAR_JAPAN_IDS = ['kr','cn','tw','mn','ph','vn','ru','th','id'];
+const VARIETY_IDS = ['jp','bd','pw','la','fi','se','no','dk','is','ch','gb','ge','gr','pa','cz','ph','bs','za','jm','tz','th','in','kr','cn','tw','mn','vn'];
+const state = { score:0, question:0, current:null, selectedColor:null, completed:[], locked:false, usedIds:[], recentIds:[] };
 const el = {
   score:document.querySelector('#score'), finalScore:document.querySelector('#finalScore'),
   workFlag:document.querySelector('#workFlag'), sampleFlag:document.querySelector('#sampleFlag'), palette:document.querySelector('#palette'),
@@ -9,7 +11,30 @@ const el = {
   garland:document.querySelector('#garland'), celebration:document.querySelector('#celebration')
 };
 function shuffle(items){const copy=[...items];for(let i=copy.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[copy[i],copy[j]]=[copy[j],copy[i]];}return copy;}
-function makeQueue(){const q=[];for(let level=1;level<=5;level++)q.push(...shuffle(FLAGS.filter(f=>f.level===level)));return q;}
+function choose(items){return items[Math.floor(Math.random()*items.length)] || null;}
+function allowedLevel(questionNumber){if(questionNumber<=4)return 2;if(questionNumber<=12)return 3;if(questionNumber<=25)return 4;return 5;}
+function unused(items){const fresh=items.filter(f=>!state.usedIds.includes(f.id));return fresh.length?fresh:items;}
+function pickNextFlag(questionNumber){
+  let pool;
+  if(questionNumber%5===0){
+    pool=FLAGS.filter(f=>NEAR_JAPAN_IDS.includes(f.id));
+  }else{
+    const maxLevel=allowedLevel(questionNumber);
+    pool=FLAGS.filter(f=>f.level<=maxLevel && !state.recentIds.includes(f.id));
+    if(questionNumber>=3 && questionNumber%3===0){
+      const varied=pool.filter(f=>VARIETY_IDS.includes(f.id));
+      if(varied.length)pool=varied;
+    }
+  }
+  const picked=choose(shuffle(unused(pool.length?pool:FLAGS)));
+  if(picked){
+    if(!state.usedIds.includes(picked.id))state.usedIds.push(picked.id);
+    state.recentIds.push(picked.id);
+    if(state.recentIds.length>8)state.recentIds.shift();
+    if(state.usedIds.length>=FLAGS.length)state.usedIds=[];
+  }
+  return picked || FLAGS[0];
+}
 function svgElement(region,fill,interactive=false){
   const ns='http://www.w3.org/2000/svg'; const node=document.createElementNS(ns,region.type);
   for(const [key,value] of Object.entries(region)){if(['id','type','color'].includes(key))continue;node.setAttribute(key,value);}
@@ -44,7 +69,13 @@ function renderPalette(flag){
 }
 function selectColor(color,chip){state.selectedColor=color;el.palette.querySelectorAll('.color-chip').forEach(c=>c.classList.remove('selected'));chip.classList.add('selected');el.message.textContent='ぬりたい ばしょを タップしてね！';el.message.className='message';}
 function paintRegion(node,forcedColor=null){if(state.locked)return;const color=forcedColor||state.selectedColor;if(!color){el.message.textContent='さきに いろを えらんでね！';el.message.className='message wrong';return;}node.setAttribute('fill',color);node.dataset.paint=color.toLowerCase();el.message.textContent='';el.message.className='message';}
-function loadQuestion(){if(!state.queue.length)state.queue=makeQueue();state.current=state.queue.shift();state.question++;state.locked=false;el.countryName.textContent=state.current.name;el.levelBadge.textContent=`レベル ${'★'.repeat(state.current.level)}`;el.progressText.textContent=`${state.question}もんめ`;el.message.textContent='';el.message.className='message';el.workFlag.replaceChildren(buildFlag(state.current,true));el.sampleFlag.replaceChildren(buildFlag(state.current,false));renderPalette(state.current);}
+function loadQuestion(){
+  const nextNumber=state.question+1;
+  state.current=pickNextFlag(nextNumber);state.question=nextNumber;state.locked=false;
+  el.countryName.textContent=state.current.name;el.levelBadge.textContent=`レベル ${'★'.repeat(state.current.level)}`;el.progressText.textContent=`${state.question}もんめ`;
+  el.message.textContent='';el.message.className='message';el.workFlag.replaceChildren(buildFlag(state.current,true));el.sampleFlag.replaceChildren(buildFlag(state.current,false));renderPalette(state.current);
+  if(window.FlagWorldMap)window.FlagWorldMap.highlight(state.current.id,state.current.name);
+}
 function isCorrect(){const nodes=[...el.workFlag.querySelectorAll('.paint-region')];return state.current.regions.every(region=>{const node=nodes.find(n=>n.dataset.regionId===region.id);return node&&(node.dataset.paint||'').toLowerCase()===region.color.toLowerCase();});}
 function celebrate(){const colors=['#ff5f6d','#ffc371','#4ecdc4','#5c7cfa','#b197fc','#69db7c'];el.celebration.innerHTML='';for(let i=0;i<90;i++){const piece=document.createElement('i');piece.className='confetti';piece.style.left=`${Math.random()*100}%`;piece.style.background=colors[i%colors.length];piece.style.setProperty('--drift',`${-120+Math.random()*240}px`);piece.style.animationDelay=`${Math.random()*.45}s`;el.celebration.appendChild(piece);}setTimeout(()=>{el.celebration.innerHTML='';},3200);}
 function checkAnswer(){if(state.locked)return;if(!isCorrect()){el.message.textContent='おしい！ おてほんを よくみて もういちど！';el.message.className='message wrong';return;}state.locked=true;state.score++;state.completed.push(state.current);el.score.textContent=state.score;el.message.textContent='せいかい！ できたね！ 🎉';el.message.className='message correct';celebrate();setTimeout(loadQuestion,3000);}
@@ -55,5 +86,5 @@ function renderGarland(flags){
   rows.forEach((rowFlags,rowIndex)=>{const row=document.createElement('div');row.className='garland-row';const rope=document.createElement('div');rope.className='garland-rope';row.appendChild(rope);const line=document.createElement('div');line.className='garland-flags';rowFlags.forEach((flag,index)=>{const wrap=document.createElement('div');wrap.className='garland-flag-wrap';const center=(rowFlags.length-1)/2;const normalized=center===0?0:Math.abs(index-center)/center;const drop=Math.round((1-normalized*normalized)*34);const swing=((index+rowIndex)%2===0?-1:1)*(3+(index%3)*2);wrap.style.setProperty('--drop',`${drop}px`);wrap.style.setProperty('--swing',`${swing}deg`);wrap.appendChild(miniFlag(flag));line.appendChild(wrap);});row.appendChild(line);el.garland.appendChild(row);});
 }
 function finishGame(){state.locked=true;document.body.classList.add('showing-result');el.gameScreen.hidden=true;el.resultScreen.hidden=false;el.finalScore.textContent=state.score;renderGarland(state.completed);}
-function restartGame(){state.score=0;state.question=0;state.completed=[];state.queue=makeQueue();state.locked=false;document.body.classList.remove('showing-result');el.score.textContent='0';el.garland.innerHTML='';el.resultScreen.hidden=true;el.gameScreen.hidden=false;loadQuestion();}
+function restartGame(){state.score=0;state.question=0;state.completed=[];state.usedIds=[];state.recentIds=[];state.locked=false;document.body.classList.remove('showing-result');el.score.textContent='0';el.garland.innerHTML='';el.resultScreen.hidden=true;el.gameScreen.hidden=false;loadQuestion();}
 el.checkBtn.addEventListener('click',checkAnswer);el.finishBtn.addEventListener('click',finishGame);el.restartBtn.addEventListener('click',restartGame);restartGame();
