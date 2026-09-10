@@ -5,6 +5,7 @@
   const rect = (id,x,y,width,height,color) => R(id,'rect',{x,y,width,height},color);
   const circle = (id,cx,cy,r,color) => R(id,'circle',{cx,cy,r},color);
   const poly = (id,points,color) => R(id,'polygon',{points},color);
+  const path = (id,d,color,transform=null) => R(id,'path',transform ? {d,transform} : {d},color);
   const starPoints = (cx,cy,outer,inner,points=5) => {
     const out=[];
     for(let i=0;i<points*2;i++){
@@ -14,13 +15,26 @@
     }
     return out.join(' ');
   };
+
+  // Taegeukgi geometry is based on the current South Korean flag SVG.
+  // Coordinate conversion: official-style source viewBox (-72 -48 144 96) -> game viewBox (0 0 300 200).
+  const krScale = 'translate(150 100) scale(2.0833333333) rotate(33.69006752598)';
+  const fullBar = cx => `M${cx-4.1667} 75h8.3334v50h-8.3334z`;
+  const brokenBar = cx => `M${cx-4.1667} 75h8.3334v22.9167h-8.3334z M${cx-4.1667} 102.0833h8.3334V125h-8.3334z`;
+  const trigramPath = (centers, broken) => centers.map((cx,i) => broken[i] ? brokenBar(cx) : fullBar(cx)).join(' ');
+
+  const koreanFlag = {id:'kr',name:'かんこく',level:5,ratio:[3,2],regions:[
+    rect('bg',0,0,300,200,'#ffffff'),
+    path('taegeukRed','M12 0a18 18 0 11-36 0 24 24 0 1148 0','#cd2e3a',krScale),
+    path('taegeukBlue','M0 0a12 12 0 1124 0 24 24 0 11-48 0 12 12 0 1024 0','#0047a0',krScale),
+    path('geon',trigramPath([45.8333,58.3333,70.8333],[false,false,false]),'#000000','rotate(33.69006752598 150 100)'),
+    path('gon',trigramPath([229.1667,241.6667,254.1667],[true,true,true]),'#000000','rotate(33.69006752598 150 100)'),
+    path('gam',trigramPath([45.8333,58.3333,70.8333],[false,true,false]),'#000000','rotate(-33.69006752598 150 100)'),
+    path('ri',trigramPath([229.1667,241.6667,254.1667],[true,false,true]),'#000000','rotate(-33.69006752598 150 100)')
+  ]};
+
   const additions = [
-    {id:'kr',name:'かんこく',level:4,ratio:[3,2],regions:[
-      rect('bg',0,0,300,200,'#ffffff'),circle('red',150,90,36,'#cd2e3a'),
-      R('blue','path',{d:'M 114 90 A 36 36 0 0 0 186 90 A 18 18 0 0 1 150 90 A 18 18 0 0 0 114 90 Z'},'#0047a0'),
-      rect('b1',55,40,44,9,'#000000'),rect('b2',55,55,44,9,'#000000'),rect('b3',55,70,44,9,'#000000'),
-      rect('b4',201,121,44,9,'#000000'),rect('b5',201,136,44,9,'#000000'),rect('b6',201,151,44,9,'#000000')
-    ]},
+    koreanFlag,
     {id:'cn',name:'ちゅうごく',level:3,ratio:[3,2],regions:[
       rect('bg',0,0,300,200,'#de2910'),poly('big',starPoints(62,58,27,11),'#ffde00'),
       poly('s1',starPoints(105,32,10,4),'#ffde00'),poly('s2',starPoints(122,54,10,4),'#ffde00'),poly('s3',starPoints(121,82,10,4),'#ffde00'),poly('s4',starPoints(101,101,10,4),'#ffde00')
@@ -36,6 +50,11 @@
       rect('bg',0,0,300,200,'#da251d'),poly('star',starPoints(150,100,42,17),'#ff0')
     ]}
   ];
-  additions.forEach(flag => { if(!has(flag.id)) list.push(flag); });
+
+  additions.forEach(flag => {
+    const index = list.findIndex(f => f.id === flag.id);
+    if(index >= 0) list[index] = flag;
+    else list.push(flag);
+  });
   window.FLAGS = list;
 })();
