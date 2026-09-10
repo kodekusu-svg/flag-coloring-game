@@ -45,11 +45,21 @@
           </article>
         </section>
 
-        <aside class="palette-panel" aria-label="カラーパレット">
-          <h3>いろ</h3>
-          <p class="helper">ドラッグ または タップ</p>
-          <div id="palette" class="palette"></div>
-          <div class="palette-hint"><span class="hand">☝️</span><span>タップしたあと、ぬりたいところをタップしてもOK</span></div>
+        <aside class="side-tools">
+          <section class="map-panel" aria-label="国の場所">
+            <div class="panel-heading">
+              <h3>どこに ある？</h3>
+              <span id="mapCountryName" class="map-country-name"></span>
+            </div>
+            <div id="worldMap" class="world-map" aria-live="polite"></div>
+          </section>
+
+          <section class="palette-panel" aria-label="カラーパレット">
+            <h3>いろ</h3>
+            <p class="helper">ドラッグ または タップ</p>
+            <div id="palette" class="palette"></div>
+            <div class="palette-hint"><span class="hand">☝️</span><span>タップしたあと、ぬりたいところをタップしてもOK</span></div>
+          </section>
         </aside>
       </div>
 
@@ -72,6 +82,8 @@
 
   <div id="celebration" class="celebration" aria-hidden="true"></div>
   <script src="flags.js"></script>
+  <script src="regional-flags.js"></script>
+  <script src="world-map.js"></script>
   <script src="game.js"></script>
 </body>
 </html>
