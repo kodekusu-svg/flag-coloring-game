@@ -80,7 +80,35 @@ function renderPalette(flag){
   colors.forEach(color=>{const chip=document.createElement('button');chip.type='button';chip.className='color-chip';chip.style.background=color;chip.dataset.color=color;chip.draggable=true;chip.setAttribute('aria-label',`色 ${color}`);chip.addEventListener('click',()=>selectColor(color,chip));chip.addEventListener('dragstart',e=>{e.dataTransfer.setData('text/plain',color);e.dataTransfer.effectAllowed='copy';});el.palette.appendChild(chip);});
 }
 function selectColor(color,chip){state.selectedColor=color;el.palette.querySelectorAll('.color-chip').forEach(c=>c.classList.remove('selected'));chip.classList.add('selected');el.message.textContent='ぬりたい ばしょを タップしてね！';el.message.className='message';}
-function paintRegion(node,forcedColor=null){if(state.locked)return;const color=forcedColor||state.selectedColor;if(!color){el.message.textContent='さきに いろを えらんでね！';el.message.className='message wrong';return;}node.setAttribute('fill',color);node.dataset.paint=color.toLowerCase();el.message.textContent='';el.message.className='message';}
+function animateRegionFill(node,color){
+  const parent=node.parentNode;
+  if(!parent||typeof node.cloneNode!=='function'){node.setAttribute('fill',color);return;}
+  parent.querySelectorAll(`[data-paint-overlay-for="${node.dataset.regionId}"]`).forEach(overlay=>overlay.remove());
+  const overlay=node.cloneNode(true);
+  overlay.classList.remove('paint-region','drop-target');
+  overlay.removeAttribute('tabindex');
+  overlay.removeAttribute('role');
+  overlay.removeAttribute('aria-label');
+  overlay.setAttribute('fill',color);
+  overlay.setAttribute('pointer-events','none');
+  overlay.dataset.paintOverlayFor=node.dataset.regionId;
+  overlay.style.clipPath='circle(0% at 50% 50%)';
+  overlay.style.webkitClipPath='circle(0% at 50% 50%)';
+  node.after(overlay);
+  const finish=()=>{node.setAttribute('fill',color);overlay.remove();};
+  if(typeof overlay.animate==='function'){
+    const animation=overlay.animate([
+      {clipPath:'circle(0% at 50% 50%)',webkitClipPath:'circle(0% at 50% 50%)'},
+      {clipPath:'circle(165% at 50% 50%)',webkitClipPath:'circle(165% at 50% 50%)'}
+    ],{duration:520,easing:'cubic-bezier(.2,.75,.25,1)',fill:'forwards'});
+    animation.addEventListener('finish',finish,{once:true});
+    animation.addEventListener('cancel',finish,{once:true});
+  }else{
+    node.setAttribute('fill',color);
+    overlay.remove();
+  }
+}
+function paintRegion(node,forcedColor=null){if(state.locked)return;const color=forcedColor||state.selectedColor;if(!color){el.message.textContent='さきに いろを えらんでね！';el.message.className='message wrong';return;}animateRegionFill(node,color);node.dataset.paint=color.toLowerCase();el.message.textContent='';el.message.className='message';}
 function loadQuestion(){
   const nextNumber=state.question+1;
   state.current=pickNextFlag(nextNumber);state.question=nextNumber;state.locked=false;
