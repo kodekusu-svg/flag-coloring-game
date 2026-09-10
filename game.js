@@ -1,6 +1,17 @@
-const FLAGS = window.FLAGS || [];
-const NEAR_JAPAN_IDS = ['kr','cn','tw','mn','ph','vn','ru','th','id'];
-const VARIETY_IDS = ['jp','bd','pw','la','fi','se','no','dk','is','ch','gb','ge','gr','pa','cz','ph','bs','za','jm','tz','th','in','kr','cn','tw','mn','vn'];
+const ALL_FLAGS = window.FLAGS || [];
+
+// Only flags that have been reviewed against authoritative/reference SVGs are eligible.
+// Keep this list intentionally conservative: an unreviewed or simplified flag must never
+// enter the quiz just to increase the question count.
+const REVIEWED_FLAG_IDS = new Set([
+  'jp','ua','fr','it','nl','ro','at','id','ru','ye','sl','ml','gn','td','ci','co','vn'
+]);
+const FLAGS = ALL_FLAGS.filter(flag => REVIEWED_FLAG_IDS.has(flag.id));
+
+// Every 5th question is chosen from a reviewed country close to Japan.
+// Countries whose current in-app drawing is simplified/inexact are deliberately excluded.
+const NEAR_JAPAN_IDS = ['ru','vn','id'];
+const VARIETY_IDS = ['jp','vn','co'];
 const state = { score:0, question:0, current:null, selectedColor:null, completed:[], locked:false, usedIds:[], recentIds:[] };
 const el = {
   score:document.querySelector('#score'), finalScore:document.querySelector('#finalScore'),
@@ -26,14 +37,15 @@ function pickNextFlag(questionNumber){
       if(varied.length)pool=varied;
     }
   }
-  const picked=choose(shuffle(unused(pool.length?pool:FLAGS)));
+  const fallback=FLAGS.length?FLAGS:ALL_FLAGS.slice(0,1);
+  const picked=choose(shuffle(unused(pool.length?pool:fallback)));
   if(picked){
     if(!state.usedIds.includes(picked.id))state.usedIds.push(picked.id);
     state.recentIds.push(picked.id);
     if(state.recentIds.length>8)state.recentIds.shift();
     if(state.usedIds.length>=FLAGS.length)state.usedIds=[];
   }
-  return picked || FLAGS[0];
+  return picked || fallback[0];
 }
 function svgElement(region,fill,interactive=false){
   const ns='http://www.w3.org/2000/svg'; const node=document.createElementNS(ns,region.type);
