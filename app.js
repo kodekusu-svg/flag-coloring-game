@@ -149,12 +149,12 @@ function rgbToHex({r,g,b}) {
   return `#${h(r)}${h(g)}${h(b)}`;
 }
 
-function makeDistractor(hex, amount = 0.10) {
+function makeDistractor(hex, amount = 0.25) {
   const rgb = hexToRgb(hex);
   const delta = Math.round(255 * amount);
   const direction = Math.random() < .5 ? -1 : 1;
 
-  // R/G/Bの3チャンネルすべてを約10%ずつ動かす。
+  // R/G/Bの3チャンネルすべてを約25%ずつ動かす。
   // 端に近い色（0や255）では同じ方向だと変化が潰れるため、
   // 各チャンネルごとに必ず変化が出る方向へ反転する。
   const shiftChannel = value => {
@@ -176,7 +176,7 @@ function paletteFor(flag) {
   correct.forEach(color => {
     let candidate = makeDistractor(color);
     let guard = 0;
-    while ((correct.some(c => colorDistance(c, candidate) < 30) || distractors.includes(candidate)) && guard++ < 10) {
+    while ((correct.some(c => colorDistance(c, candidate) < 70) || distractors.includes(candidate)) && guard++ < 10) {
       candidate = makeDistractor(color);
     }
     distractors.push(candidate);
