@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#fff7e8">
+  <title>せかいの国旗 いろぬりゲーム</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="app-shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">せかいを たびしよう！</p>
+        <h1>国旗 いろぬりゲーム</h1>
+      </div>
+      <div class="top-actions">
+        <div class="score-chip" aria-live="polite">できた <strong id="score">0</strong> こ</div>
+        <button id="finishBtn" class="button button-secondary" type="button">おわる</button>
+      </div>
+    </header>
+
+    <section id="gameScreen" class="game-screen" aria-label="国旗いろぬりゲーム">
+      <div class="question-heading">
+        <div>
+          <span id="levelBadge" class="level-badge">レベル ★</span>
+          <h2 id="countryName">にほん</h2>
+        </div>
+        <p id="progressText" class="progress-text">1もんめ</p>
+      </div>
+
+      <div class="play-layout">
+        <section class="flags-area">
+          <article class="flag-card work-card">
+            <h3>ぬってみよう</h3>
+            <p class="helper">いろを えらんで、国旗の なかに おいてね</p>
+            <div id="workFlag" class="flag-stage" aria-label="色を塗る国旗"></div>
+          </article>
+
+          <article class="flag-card sample-card">
+            <h3>おてほん</h3>
+            <p class="helper">よくみて おなじいろに しよう！</p>
+            <div id="sampleFlag" class="flag-stage" aria-label="正解の国旗"></div>
+          </article>
+        </section>
+
+        <aside class="palette-panel" aria-label="カラーパレット">
+          <h3>いろ</h3>
+          <p class="helper">ドラッグ または タップ</p>
+          <div id="palette" class="palette"></div>
+          <div class="palette-hint"><span class="hand">☝️</span><span>タップしたあと、ぬりたいところをタップしてもOK</span></div>
+        </aside>
+      </div>
+
+      <div class="answer-row">
+        <p id="message" class="message" aria-live="polite"></p>
+        <button id="checkBtn" class="button button-primary" type="button">できた！</button>
+      </div>
+    </section>
+
+    <section id="resultScreen" class="result-screen" hidden>
+      <div id="garland" class="garland" aria-hidden="true"></div>
+      <div class="result-card">
+        <p class="result-kicker">きょうの きろく</p>
+        <h2><strong id="finalScore">0</strong>この 国旗が できたよ！</h2>
+        <p>すごい！ また せかいの国旗を ぬってみよう。</p>
+        <button id="restartBtn" class="button button-primary" type="button">もういちど</button>
+      </div>
+    </section>
+  </main>
+
+  <div id="celebration" class="celebration" aria-hidden="true"></div>
+  <script src="app.js"></script>
+</body>
+</html>
